@@ -23,11 +23,8 @@ class UserModel extends \yii\db\ActiveRecord
 
     public static $cookie;
 
-    public $test;
-
     public function __construct()
     {
-        $this->test = 111;
         static::$expireTime = time() + 86400 * 7;
         static::$session = \Yii::$app->session;
         static::$cookie  = \Yii::$app->request->cookies;
@@ -70,19 +67,16 @@ class UserModel extends \yii\db\ActiveRecord
 
     public static function login($loginPost)
     {
-        $cookies = \Yii::$app->response->cookies;
-        $usernameCookie = $cookies->getValue('username');
-        $passwordCookie = $cookies->getValue('password');
-        $where = ['username' => $usernameCookie, 'password' => $passwordCookie];
-        $userCheck = static::find()->where($where)->asArray()->one();
-
-        if (empty($usernameCookie) || empty($passwordCookie) || empty($userCheck)) {
-            //1. 查找用户名是否存在 2.匹配密码 3.登录成功，记住我
+        //1. 查找用户名是否存在 2.匹配密码 3.登录成功，记住我
+        $username   = trim($loginPost['username']);
+        $password   = trim($loginPost['password']);
+        if (!empty($username) && !empty($password)) {
             $model = new UserModel();
-            $where = ['username' => $loginPost['username']];
+            $cookies = $cookie = \Yii::$app->response->cookies;
+            $where = ['username' => $username];
             $userInfo = $model->find()->select(['id', 'username', 'password'])->where($where)->asArray()->one();
             if (!empty($userInfo)) {
-                if (sha1(sha1($loginPost['password'])) === $userInfo['password']) {
+                if (sha1(sha1($password)) === $userInfo['password']) {
                     static::$session->set('userId', $userInfo['id']);
                     if ($loginPost['rememberMe'] === '1') {
                         $data = [
@@ -110,7 +104,7 @@ class UserModel extends \yii\db\ActiveRecord
                 return '账号错误';
             }
         } else {
-            return true;
+            return '用户账号或者密码不能为空';
         }
     }
 
@@ -131,7 +125,7 @@ class UserModel extends \yii\db\ActiveRecord
                     $model = new UserModel();
                     $model->setAttributes($regPost, false);
                     if ($model->save()) {
-                        static::$session->set('userId', $model->attributes['id']);
+                        Yii::$app->session->set('userId', $model->attributes['id']);
                         return true;
                     } else {
                         return '注册失败';
@@ -149,10 +143,11 @@ class UserModel extends \yii\db\ActiveRecord
 
     public static function logout()
     {
-//        echo '<pre>';var_dump($this->test);exit;
-        static::$cookie->remove('username');
-        static::$cookie->remove('password');
-        static::$session->remove('userInfo');
+        $cookie = \Yii::$app->response->cookies;
+        $session = \Yii::$app->session;
+        $cookie->remove('username');
+        $cookie->remove('password');
+        $session->remove('userId');
     }
 
     public static function checkLogin()

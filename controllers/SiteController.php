@@ -4,7 +4,6 @@ namespace app\controllers;
 
 use app\models\UserModel;
 use Yii;
-use yii\base\Exception;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\Response;
@@ -16,10 +15,14 @@ class SiteController extends Controller
 {
     public static $request;
 
+    public static $cookie;
+
     public function init()
     {
         parent::init();
         static::$request = Yii::$app->request;
+        static::$cookie  = Yii::$app->request->cookies;
+        static::checkRememberMe();
     }
     /**
      * {@inheritdoc}
@@ -99,20 +102,6 @@ class SiteController extends Controller
         } else {
             $this->redirect(['index']);
         }
-
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
-        }
-
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
-        }
-
-        $model->password = '';
-        return $this->render('login', [
-            'model' => $model,
-        ]);
     }
 
     /**
@@ -123,9 +112,7 @@ class SiteController extends Controller
     public function actionExit()
     {
         UserModel::logout();
-        Yii::$app->user->logout();
-
-        return $this->goHome();
+        $this->redirect(['index']);
     }
 
     /**
@@ -179,9 +166,20 @@ class SiteController extends Controller
 
     public function actionPublish()
     {
-        $cookie = \Yii::$app->request->cookies;
-        $cookie->getValue('usernameCookie');
-        $cookie->getValue('passwordCookie');
-        echo '<pre>';var_dump($cookie->getValue('usernameCookie'));var_dump($cookie->getValue('passwordCookie'));exit;
+
+    }
+
+    public static function checkRememberMe()
+    {
+        $model = new UserModel();
+        if (!$model::checkLogin()) {
+            $username = static::$cookie->getValue('username');
+            $password = static::$cookie->getValue('password');
+            $where    = ['username' => $username, 'password' => $password];
+            $userId   = $model::find()->select('id')->where($where)->scalar();
+            if ($userId) {
+                $model::$session->set('userId', $userId);
+            }
+        }
     }
 }
