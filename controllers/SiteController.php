@@ -2,7 +2,9 @@
 
 namespace app\controllers;
 
+use app\models\UserModel;
 use Yii;
+use yii\base\Exception;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\Response;
@@ -12,6 +14,13 @@ use app\models\ContactForm;
 
 class SiteController extends Controller
 {
+    public static $request;
+
+    public function init()
+    {
+        parent::init();
+        static::$request = Yii::$app->request;
+    }
     /**
      * {@inheritdoc}
      */
@@ -71,6 +80,26 @@ class SiteController extends Controller
      */
     public function actionLogin()
     {
+        $model = new LoginForm();
+
+        if (!UserModel::checkLogin()) {
+            $loginPost = static::$request->post();
+            if (!empty($loginPost)) {
+                $loginReturn = UserModel::login($loginPost['LoginForm']);
+                if (is_bool($loginReturn) && $loginReturn === true) {
+                    $this->redirect(['index']);
+                } else {
+                    Yii::$app->getSession()->setFlash('error', $loginReturn);
+                }
+            }
+
+            return $this->render('login', [
+                'model' => $model,
+            ]);
+        } else {
+            $this->redirect(['index']);
+        }
+
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
         }
@@ -91,8 +120,9 @@ class SiteController extends Controller
      *
      * @return Response
      */
-    public function actionLogout()
+    public function actionExit()
     {
+        UserModel::logout();
         Yii::$app->user->logout();
 
         return $this->goHome();
@@ -124,5 +154,34 @@ class SiteController extends Controller
     public function actionAbout()
     {
         return $this->render('about');
+    }
+
+    public function actionRegister()
+    {
+        $model = new UserModel();
+        if (!$model::checkLogin()) {
+            $regPost = static::$request->post();
+            if (!empty($regPost)) {
+                $regReturn = UserModel::register($regPost['UserModel']);
+                if (is_bool($regReturn) && $regReturn === true) {
+                    $this->redirect(['index']);
+                } else {
+                    Yii::$app->getSession()->setFlash('error', $regReturn);
+                }
+            }
+            return $this->render('register', [
+                'model' => $model,
+            ]);
+        } else {
+            $this->redirect(['index']);
+        }
+    }
+
+    public function actionPublish()
+    {
+        $cookie = \Yii::$app->request->cookies;
+        $cookie->getValue('usernameCookie');
+        $cookie->getValue('passwordCookie');
+        echo '<pre>';var_dump($cookie->getValue('usernameCookie'));var_dump($cookie->getValue('passwordCookie'));exit;
     }
 }
