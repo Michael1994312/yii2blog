@@ -2,6 +2,7 @@
 namespace app\models;
 
 use Yii;
+use yii\data\Pagination;
 
 /**
  * This is the model class for table "{{%comment}}".
@@ -40,8 +41,8 @@ class CommentModel extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['user_id', 'parent_id', 'article_id', 'prev_id'], 'required', 'message' => '{attribute}不能为空'],
-            [['user_id', 'article_id', 'parent_id', 'prev_id', 'created_at'], 'integer'],
+            [['user_id', 'article_id'], 'required', 'message' => '{attribute}不能为空'],
+            [['user_id', 'article_id', 'created_at'], 'integer'],
             [['contents'], 'string'],
             ['created_at', 'default', 'value' => time()],
         ];
@@ -58,27 +59,30 @@ class CommentModel extends \yii\db\ActiveRecord
             'article_id' => 'Article ID',
             'parent_id' => 'Parent ID',
             'prev_id' => 'Prev ID',
-            'contents' => 'Contents',
+            'contents' => '评论',
             'created_at' => 'Created At',
         ];
     }
 
+    /**
+     * @info 文章评论
+     * @param $commentPost
+     * @return bool|string
+     */
     public static function replyComment($commentPost)
     {
-        $commentPost = [
-            'article_id' => '1',
-            'parent_id' => '1',
-            'prev_id' => '1',
-            'contents' => '测试回复内容',
-        ];
-        list($articleId, $parentId, $prevId, $contents) = $commentPost;
+        $contents  = trim($commentPost['contents']);
+        $articleId = intval($commentPost['id']);
         //1.检查是否登陆 2.入库
         if (!empty($articleId) && !empty($contents)) {
             $userId = Yii::$app->session->get('userId');
             if (!empty($userId)) {
+                unset($commentPost['id']);
+                $commentPost['article_id'] = $articleId;
                 $commentPost['user_id'] = $userId;
-                static::$model->setAttributes($commentPost, false);
-                if (static::$model->save()) {
+                $model = new CommentModel();
+                $model->setAttributes($commentPost, false);
+                if ($model->save()) {
                     return true;
                 } else {
                     return '回复失败';
@@ -91,4 +95,33 @@ class CommentModel extends \yii\db\ActiveRecord
         }
     }
 
+    /**
+     * @info 评论数据格式化
+     * @param $comments
+     * @return string
+     */
+    public static function commentFormat($comments)
+    {
+        if (!empty($comments)) {
+            foreach ($comments as &$row) {
+                $row['created_at'] = date('Y-m-d H:i', $row['created_at']);
+                $row['user_name']  = UserModel::getUserName($row['user_id']);
+            }
+            return $comments;
+        }
+    }
+
+    /**
+     * @info 获取评论最后一页
+     * @param $pageSize
+     * @return int
+     */
+    public static function getLastPage($pageSize)
+    {
+        $pageSize  = $pageSize ? intval($pageSize) : 5;
+        $query     = CommentModel::find();
+        $count     = $query->count();
+        $pager     = new Pagination(['totalCount' => $count, 'pageSize' => $pageSize]);
+        return $pager->getPageCount();
+    }
 }

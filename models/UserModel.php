@@ -65,6 +65,11 @@ class UserModel extends \yii\db\ActiveRecord
         ];
     }
 
+    /**
+     * @info 登陆
+     * @param $loginPost
+     * @return bool|string
+     */
     public static function login($loginPost)
     {
         //1. 查找用户名是否存在 2.匹配密码 3.登录成功，记住我
@@ -108,6 +113,11 @@ class UserModel extends \yii\db\ActiveRecord
         }
     }
 
+    /**
+     * @info 注册
+     * @param $regPost
+     * @return bool|string
+     */
     public static function register($regPost)
     {
         // 1.检查该账号是否已存在 2. 校验密码是否正确
@@ -141,6 +151,9 @@ class UserModel extends \yii\db\ActiveRecord
         }
     }
 
+    /**
+     * @info 退出
+     */
     public static function logout()
     {
         $cookie = \Yii::$app->response->cookies;
@@ -150,6 +163,10 @@ class UserModel extends \yii\db\ActiveRecord
         $session->remove('userId');
     }
 
+    /**
+     * @info 检测是否登陆
+     * @return bool
+     */
     public static function checkLogin()
     {
         $userId = \Yii::$app->session->get('userId');
@@ -159,5 +176,34 @@ class UserModel extends \yii\db\ActiveRecord
         } else {
             return false;
         }
+    }
+
+    /**
+     * @info 检测是否 记住我
+     */
+    public static function checkRememberMe()
+    {
+        $model = new UserModel();
+        if (!$model::checkLogin()) {
+            $username = static::$cookie->getValue('username');
+            $password = static::$cookie->getValue('password');
+            $where    = ['username' => $username, 'password' => $password];
+            $userId   = $model::find()->select('id')->where($where)->scalar();
+            if ($userId) {
+                $model::$session->set('userId', $userId);
+            }
+        }
+    }
+
+    /**
+     * @info 获取用户名
+     * @param null $userId
+     * @return false|null|string
+     */
+    public static function getUserName($userId = null)
+    {
+        $userId = $userId ? $userId : \Yii::$app->session->get('userId');
+        $userName = static::find()->select('username')->where(['id' => $userId])->scalar();
+        return $userName;
     }
 }

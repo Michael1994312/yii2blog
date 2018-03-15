@@ -44,7 +44,7 @@ class ArticleModel extends \yii\db\ActiveRecord
             [['title', 'content', 'user_id'], 'required', 'message' => '{attribute}不能为空'],
             [['user_id', 'is_delete', 'created_at', 'updated_at'], 'integer'],
             ['title', 'string', 'max' => 40],
-            [['contents'], 'string'],
+            [['content'], 'string'],
             [['created_at', 'updated_at'], 'default', 'value' => time()],
         ];
     }
@@ -65,20 +65,23 @@ class ArticleModel extends \yii\db\ActiveRecord
         ];
     }
 
+    /**
+     * @info 发布文章
+     * @param $articlePost
+     * @return bool|string
+     */
     public static function publish($articlePost)
     {
-        $articlePost = [
-            'title' => '测试标题',
-            'content' => '测试内容',
-        ];
-        list($title, $content) = $articlePost;
+        $title = trim($articlePost['title']);
+        $content = trim($articlePost['content']);
         //1.检查是否登陆 2.入库
         if (!empty($title) && !empty($content)) {
             $userId = Yii::$app->session->get('userId');
             if (!empty($userId)) {
-                $articlePost['id'] = $userId;
-                static::$model->setAttributes($articlePost, false);
-                if (static::$model->save()) {
+                $articlePost['user_id'] = $userId;
+                $model = new ArticleModel();
+                $model->setAttributes($articlePost, false);
+                if ($model->save()) {
                     return true;
                 } else {
                     return '发布文章失败';
@@ -91,5 +94,36 @@ class ArticleModel extends \yii\db\ActiveRecord
         }
     }
 
+    /**
+     * @info 文章详情数据格式化
+     * @param $artDetail
+     * @return string
+     */
+    public static function articleFormat($artDetail)
+    {
+        if (!empty($artDetail)) {
+            $artDetail['user_name'] = UserModel::getUserName($artDetail['user_id']);
+            $artDetail['created_at'] = date('Y-m-d H:i', $artDetail['created_at']);
+            $artDetail['updated_at'] = date('Y-m-d H:i', $artDetail['updated_at']);
+            return $artDetail;
+        }
+    }
 
+    /**
+     * @info 文章列表数据格式化
+     * @param $articles
+     * @return mixed
+     */
+    public static function acticleListFormat($articles)
+    {
+        if (!empty($articles)) {
+            foreach ($articles as &$row) {
+                $row['user_name'] = UserModel::getUserName($row['user_id']);
+                $row['created_at'] = date('Y-m-d H:i', $row['created_at']);
+                $row['updated_at'] = date('Y-m-d H:i', $row['updated_at']);
+            }
+
+            return $articles;
+        }
+    }
 }
