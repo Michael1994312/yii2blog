@@ -6,7 +6,7 @@ $db = require __DIR__ . '/db.php';
 $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),
-    'bootstrap' => ['log'],
+    'bootstrap' => ['log','debug'],
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
@@ -15,7 +15,7 @@ $config = [
         'request' => [
             // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
             'cookieValidationKey' => 'ding1994312',
-            'enableCsrfCookie' => false,
+            'enableCsrfCookie' => true,
         ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
@@ -39,7 +39,7 @@ $config = [
             'targets' => [
                 [
                     'class' => 'yii\log\FileTarget',
-                    'levels' => ['error', 'warning'],
+                    'levels' => ['error', 'warning', 'trace'],
                 ],
             ],
         ],
@@ -61,11 +61,31 @@ $config = [
                 ]
             ]
         ],
+        'redis' => [
+            'class' => 'yii\redis\Connection',
+            'hostname' => '127.0.0.1',
+            'port' => 6379,
+            'database' => 0,
+        ],
     ],
     'params' => $params,
 ];
 
-if (YII_ENV_DEV) {
+$config['bootstrap'][] = 'debug';
+$config['modules']['debug'] = [
+    'class' => 'yii\debug\Module',
+    // uncomment the following to add your IP if you are not connecting from localhost.
+    //'allowedIPs' => ['127.0.0.1', '::1'],
+];
+
+$config['bootstrap'][] = 'gii';
+$config['modules']['gii'] = [
+    'class' => 'yii\gii\Module',
+    // uncomment the following to add your IP if you are not connecting from localhost.
+    //'allowedIPs' => ['127.0.0.1', '::1'],
+];
+
+/*if (YII_ENV_DEV) {
     // configuration adjustments for 'dev' environment
     $config['bootstrap'][] = 'debug';
     $config['modules']['debug'] = [
@@ -80,6 +100,6 @@ if (YII_ENV_DEV) {
         // uncomment the following to add your IP if you are not connecting from localhost.
         //'allowedIPs' => ['127.0.0.1', '::1'],
     ];
-}
+}*/
 
 return $config;

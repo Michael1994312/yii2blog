@@ -24,6 +24,7 @@ class SiteController extends Controller
 
     public function init()
     {
+//        $this->layout
         parent::init();
         $this->pageSize = 5;
         static::$request = Yii::$app->request;
@@ -58,6 +59,11 @@ class SiteController extends Controller
 
     public function beforeAction($action)
     {
+        $currentAction  = $action->id;
+        $noValidActions = ['captcha'];
+        if(in_array($currentAction,$noValidActions)) {
+            $action->controller->enableCsrfValidation = false;
+        }
         if (parent::beforeAction($action)) {
             if ($this->enableCsrfValidation) {
                 Yii::$app->getRequest()->getCsrfToken(true);
@@ -261,10 +267,10 @@ class SiteController extends Controller
                 $lastPage = CommentModel::getLastPage($this->pageSize);
                 $this->redirect(['articledetail', 'article_id' => $commentPost['CommentModel']['id'], 'page' => $lastPage]);
                 return true;
-            } else {
+            }
                 Yii::$app->getSession()->setFlash('error', $commentReturn);
                 return false;
-            }
+
         }
     }
 }
