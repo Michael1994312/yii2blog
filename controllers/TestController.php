@@ -21,15 +21,22 @@ class TestController extends Controller
         OrderModel::rollingCurl($urls);
     }
 
+    /**
+     * 这个方法以后可以用脚本代替
+     */
+    public function actionConsume()
+    {
+//        echo '<pre>';var_dump(Yii::$app->redis->lrange('test_list', 0, -1));exit;
+        OrderModel::orderPop();
+    }
+
     public function actionTesta()
     {
-        $return = OrderModel::createOrder(1, 9);
-//        echo $return;
+        OrderModel::orderPush(1, 9);
     }
 
     public function actionTestb()
     {
-        $return = OrderModel::createOrder(1, 2);
-//        echo $return;
+        OrderModel::orderPush(1, 2);
     }
 }
